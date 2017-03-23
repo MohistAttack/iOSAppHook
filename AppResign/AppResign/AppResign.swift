@@ -370,6 +370,7 @@ class AppResign {
                 
                 // MARK: Delete URL Schemes
                 if deleteURLSchemes {
+                    print("Delete URL Schemes")
                     let _ = self.plistBuddy(appBundleInfoPlist, command: "delete :CFBundleURLTypes")
                 }
                 
@@ -460,15 +461,37 @@ class AppResign {
                 cleanup(tempFolder); return
             }
         }
-        print("Packaging IPA")
-        let zipTask = self.zip(workingDirectory, outputFile: outputFile.lastPathComponent)
-        if zipTask.status != 0 {
-            Log("Error packaging IPA")
-        }
-        
-        let cpTask = Process().execute(cpPath, workingDirectory: nil, arguments: [workingDirectory.stringByAppendingPathComponent(outputFile.lastPathComponent), outputFile])
-        if cpTask.status != 0 {
-            Log("Error copy IPA")
+        if outputFile.pathExtension.lowercased() == "app"  {
+            print("Moving signed app")
+//            do {
+//                try fileManager.copyItem(atPath: workingDirectory.stringByAppendingPathComponent("Payload/"+inputFile.lastPathComponent), toPath: outputFile)
+//            } catch let error as NSError {
+//                Log("Error copying signed app to output")
+//                Log(error.localizedDescription)
+//                cleanup(tempFolder)
+//                return;
+//            }
+            let mvTask = Process().execute("/bin/mv", workingDirectory: nil, arguments: [workingDirectory.stringByAppendingPathComponent("Payload/"+inputFile.lastPathComponent), outputFile])
+            if mvTask.status != 0 {
+                Log("Error moving signed app")
+                cleanup(tempFolder)
+                return;
+            }
+        }else{
+            print("Packaging IPA")
+            let zipTask = self.zip(workingDirectory, outputFile: outputFile.lastPathComponent)
+            if zipTask.status != 0 {
+                Log("Error packaging IPA")
+                cleanup(tempFolder)
+                return;
+            }
+            
+            let cpTask = Process().execute(cpPath, workingDirectory: nil, arguments: [workingDirectory.stringByAppendingPathComponent(outputFile.lastPathComponent), outputFile])
+            if cpTask.status != 0 {
+                Log("Error copy IPA")
+                cleanup(tempFolder)
+                return;
+            }
         }
         
         // MARK: Cleanup

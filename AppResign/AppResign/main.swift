@@ -23,10 +23,11 @@ func Usage() {
     print("-p \t provisioning profile")
     print("-b \t bundle id")
     print("-n \t display name, '*' means default name")
+    print("-d \t delete url schemes,'y'/'n'")
     print("\nExample:")
     print("./\(appName) xxx.ipa xxx-out.ipa")
     print("./\(appName) -v xxx.ipa xxx-out.ipa")
-    print("./\(appName) -v -c 'iPhone Developer: XXX XXX (ABCDE12345)' -p 'iOS Team Provisioning Profile: com.xxx.xxx (ABCDE12345)' -b 'com.xxx.xxx' -n '*' xxx.ipa xxx-out.ipa")
+    print("./\(appName) -v -c 'iPhone Developer: XXX XXX (ABCDE12345)' -p 'iOS Team Provisioning Profile: com.xxx.xxx (ABCDE12345)' -b 'com.xxx.xxx' -n '*' -d 'y' xxx.ipa xxx-out.ipa")
     exit(1)
 }
 
@@ -34,7 +35,7 @@ func Usage() {
 //func raw_input(_ prompt: String = "> ") -> String {
 //    print(prompt, terminator:"")
 //    var input: String = ""
-//    
+//
 //    while true {
 //        let c = Character(UnicodeScalar(UInt32(fgetc(stdin)))!)
 //        if c == "\n" {
@@ -51,10 +52,14 @@ func raw_input(_ prompt: String = "> ") -> String {
 }
 
 
-func mainRoutine(_ input: String, output: String, certificate: String, provProfile: String, bundleId: String, displayName: String) {
+func mainRoutine(_ input: String, output: String, certificate: String, provProfile: String, bundleId: String, displayName: String, deleteQuery: String) {
     let support = ["deb", "ipa", "app", "xcarchive"]
     if support.contains(input.pathExtension) {
-        if output.pathExtension == "ipa" {
+        if input == output {
+            print("[*] Error! \ninput cant equal to output.")
+            return;
+        }
+        if output.pathExtension == "ipa" || output.pathExtension == "app" {
             let appResign = AppResign()
             
             print("=============================")
@@ -170,9 +175,15 @@ func mainRoutine(_ input: String, output: String, certificate: String, provProfi
             }
             
             // If delete url schemes
-            let deleteQuery = raw_input("Delete url schemes (y/n): ")
-            if !deleteQuery.isEmpty && deleteQuery == "y" {
-                appResign.deleteURLSchemes = true
+            if (!deleteQuery.isEmpty) {
+                if deleteQuery == "y" {
+                    appResign.deleteURLSchemes = true
+                }
+            }else{
+                let deleteQuery = raw_input("Delete url schemes (y/n): ")
+                if !deleteQuery.isEmpty && deleteQuery == "y" {
+                    appResign.deleteURLSchemes = true
+                }
             }
             
             print("=============================")
@@ -189,7 +200,7 @@ func mainRoutine(_ input: String, output: String, certificate: String, provProfi
     }
 }
 
-if (argv.count < 3 || argv.count > 12) {
+if (argv.count < 3 || argv.count > 14) {
     Usage()
 }
 
@@ -197,31 +208,35 @@ var certificate = ""
 var provProfile = ""
 var bundleId    = ""
 var displayName = ""
+var deleteQuery = ""
 var i = 1
 while (i < argv.count - 2) {
     switch (argv[i]) {
-        case "-v":
-            LogMode = true
-        case "-c":
-            i += 1
-            certificate = argv[i]
-        case "-p":
-            i += 1
-            provProfile = argv[i]
-        case "-b":
-            i += 1
-            bundleId    = argv[i]
-        case "-n":
-            i += 1
-            displayName = argv[i]
-        default:
-            Usage()
+    case "-v":
+        LogMode = true
+    case "-c":
+        i += 1
+        certificate = argv[i]
+    case "-p":
+        i += 1
+        provProfile = argv[i]
+    case "-b":
+        i += 1
+        bundleId    = argv[i]
+    case "-n":
+        i += 1
+        displayName = argv[i]
+    case "-d":
+        i += 1
+        deleteQuery = argv[i]
+    default:
+        Usage()
     }
     i += 1
 }
 let input  = argv[argv.count - 2]
 let output = argv[argv.count - 1]
 
-mainRoutine(input, output: output, certificate: certificate, provProfile: provProfile, bundleId: bundleId, displayName: displayName)
+mainRoutine(input, output: output, certificate: certificate, provProfile: provProfile, bundleId: bundleId, displayName: displayName, deleteQuery: deleteQuery)
 
 
